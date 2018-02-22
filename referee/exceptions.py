@@ -1,0 +1,2 @@
+class PlayerAlreadyJoined(Exception):
+    pass

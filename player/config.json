@@ -1,0 +1,34 @@
+{
+    "1": {
+        "name": "Joey",
+        "defense_set": 8
+    },
+    "2": {
+        "name": "Nick",
+        "defense_set": 8
+    },
+    "3": {
+        "name": "Russel",
+        "defense_set": 7
+    },
+    "4": {
+        "name": "Vivek",
+        "defense_set": 7
+    },
+    "5": {
+        "name": "Pritam",
+        "defense_set": 6
+    },
+    "6": {
+        "name": "Amit",
+        "defense_set": 6
+    },
+    "7": {
+        "name": "Chandler",
+        "defense_set": 5
+    },
+    "8": {
+        "name": "Colwin",
+        "defense_set": 5
+    }
+}
