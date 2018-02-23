@@ -9,6 +9,7 @@ from requests.exceptions import ConnectionError as ReqConnError
 
 from referee.exceptions import PlayerAlreadyJoined
 from referee.models import Competition, Player, Game
+from referee.report import ExportReport
 from utils import RedisConnection, Settings, setup_logging
 
 # Initialize Flask
@@ -31,6 +32,15 @@ def run_game(game: Game):
     game.create()
     attacker = game.player1
     defender = game.player2
+    # Inform the players that the game has started
+    body = {
+        "status": 1,
+        "game_id": game.id,
+        "attacker_id": attacker.id
+    }
+    requests.post("http://localhost:{0}/game_info/{1}".format(game.player1.port, game.player1.id), json=body)
+    requests.post("http://localhost:{0}/game_info/{1}".format(game.player2.port, game.player2.id), json=body)
+
     while True:
         attack_res = requests.get("http://localhost:{0}/attack_value".format(attacker.port))
         defense_res = requests.post("http://localhost:{0}/can_defend/{1}".format(defender.port, defender.id),
@@ -45,11 +55,20 @@ def run_game(game: Game):
         if game.has_finished():
             log.info("Game no. {0} has finished. Winner: {1}".format(game.id, game.winner.name))
             break
-    # Send kill signal to the loser
+    # Send Results to Players
+    body = {
+        "status": 2,
+        "game_id": game.id,
+        "winner_id": game.winner.id
+    }
     try:
-        requests.post("http://localhost:{0}/eliminate/{1}".format(game.loser.port, game.loser.id))
+        requests.post("http://localhost:{0}/game_info/{1}".format(game.player1.port, game.player1.id), json=body)
     except ReqConnError:
-        log.info("Player {0} has left the competition".format(game.loser.name))
+        log.info("Player {0} has left the competition".format(game.player1.name))
+    try:
+        requests.post("http://localhost:{0}/game_info/{1}".format(game.player2.port, game.player2.id), json=body)
+    except ReqConnError:
+        log.info("Player {0} has left the competition".format(game.player2.name))
     game.end_game()
     # Add the winner back in competition
     competition = Competition.get()
@@ -81,6 +100,9 @@ def games():
     if game.player1 and game.player2:
         run_game(game)
     log.info("Competition has ended, the winner is {0}".format(game.winner.name))
+    report = ExportReport()
+    report.generate()
+    log.info("Generated competition report to {0}".format(report.file_name))
 
 
 @app.route("/join", methods=["POST"])

@@ -29,3 +29,7 @@ referee.server.host: localhost
 referee.server.port: 5000
 
 player.server.start_port: 5001
+
+competition.cache_key: competition
+games.cache_key_prefix: ping_pong_game
+player.cache_key_prefix: player

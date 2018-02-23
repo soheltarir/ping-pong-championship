@@ -19,6 +19,13 @@ class RedisConnection:
     def set(self, key, value):
         self.conn.set(key, pickle.dumps(value))
 
+    def get_all(self, pattern):
+        keys = self.conn.keys(pattern)
+        unpicked_values = []
+        for _ in sorted(keys):
+            unpicked_values.append(self.get(_))
+        return unpicked_values
+
     def flushdb(self):
         self.conn.flushdb()
 
@@ -58,6 +65,18 @@ class Settings:
     @property
     def total_players(self):
         return self.data["total_players"]
+
+    @property
+    def player_cache_key_prefix(self):
+        return self.data["player.cache_key_prefix"]
+
+    @property
+    def competition_cache_key(self):
+        return self.data["competition.cache_key"]
+
+    @property
+    def game_cache_key_prefix(self):
+        return self.data["games.cache_key_prefix"]
 
 
 def setup_logging(verbose=0, name=None):

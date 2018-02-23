@@ -47,11 +47,26 @@ def can_defend(player_id):
     return jsonify(data)
 
 
-@app.route("/eliminate/<player_id>", methods=["POST"])
-def eliminate(player_id):
+@app.route("/game_info/<player_id>", methods=["POST"])
+def receive_game_info(player_id):
     p = REDIS_CONN.get("player_{0}".format(player_id))
-    log.info("Player {0} eliminated, killing the process".format(p))
-    os.kill(os.getpid(), signal.SIGTERM)
+    body = request.get_json()
+    if body["status"] == 1:
+        # Game has started
+        if body["attacker_id"] == p.id:
+            log.info("{0} has started playing Game (ID: {1}) and is the attacker".format(p.name, body["game_id"]))
+        else:
+            log.info("{0} has started playing Game (ID: {1}) and is the defender".format(p.name, body["game_id"]))
+        return app.response_class(status=200)
+    elif body["status"] == 2 and body["winner_id"] == p.id:
+        log.info("{0} has won the Game (ID: {1})".format(p.name, body["game_id"]))
+        return app.response_class(status=200)
+    elif body["status"] == 2 and body["winner_id"] != p.id:
+        log.info("{0} has lost the Game (ID: {1})".format(p.name, body["game_id"]))
+        log.warning("Killing the player process.")
+        os.kill(os.getpid(), signal.SIGTERM)
+    else:
+        log.error("Invalid request received.")
 
 
 def main(player_id):

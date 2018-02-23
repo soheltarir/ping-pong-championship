@@ -1,8 +1,8 @@
 from referee import PlayerAlreadyJoined
-from utils import RedisConnection
+from utils import RedisConnection, Settings
 
-CACHE_KEY_PREFIX = "ping_pong_game"
 REDIS_CONN = RedisConnection()
+settings = Settings()
 
 
 class Player:
@@ -12,12 +12,16 @@ class Player:
         self.defense_set = defense_set
         self.port = port
         self.host = host
+        self.current_game_id = None
 
     def __str__(self):
         return self.name
 
     def __repr__(self):
         return "<Player: {0}>".format(self.name)
+
+    def set_current_game(self, game_id):
+        self.current_game_id = game_id
 
 
 class Competition:
@@ -68,7 +72,7 @@ class Game:
 
     @property
     def cache_key(self):
-        return "{0}_{1}".format(CACHE_KEY_PREFIX, self.id)
+        return "{0}_{1}".format(settings.game_cache_key_prefix, self.id)
 
     def create(self):
         REDIS_CONN.set(self.cache_key, self)
@@ -93,7 +97,7 @@ class Game:
 
     @classmethod
     def get(cls, game_id):
-        cache_key = "{0}_{1}".format(CACHE_KEY_PREFIX, game_id)
+        cache_key = "{0}_{1}".format(settings.game_cache_key_prefix, game_id)
         value = REDIS_CONN.get(cache_key)
         if not value:
             raise LookupError("No game found with id {0}".format(game_id))
