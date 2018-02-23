@@ -1,0 +1,31 @@
+total_players: 8
+players:
+  - id: 1
+    name: Joey
+    defense: 8
+  - id: 2
+    name: Nick
+    defense: 8
+  - id: 3
+    name: Russel
+    defense: 7
+  - id: 4
+    name: Vivek
+    defense: 7
+  - id: 5
+    name: Pritam
+    defense: 6
+  - id: 6
+    name: Amit
+    defense: 6
+  - id: 7
+    name: Chandler
+    defense: 5
+  - id: 8
+    name: Colwin
+    defense: 5
+
+referee.server.host: localhost
+referee.server.port: 5000
+
+player.server.start_port: 5001

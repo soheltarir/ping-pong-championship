@@ -1,17 +1,27 @@
+import os
 import random
+import signal
 import sys
 
-import atexit
 import requests
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, logging
 
 from player import Player
-from utils import RedisConnection
+from utils import RedisConnection, Settings, setup_logging
 
+# Initialise Flask
 app = Flask(__name__)
-PORT_PREFIX = "500"
-REFEREE_HOST = "http://localhost:5000"
+flask_log = logging.getLogger('werkzeug')
+flask_log.setLevel(logging.ERROR)
+
+# Get Settings
+settings = Settings()
+# Get Redis Connection
 REDIS_CONN = RedisConnection()
+
+# Current Process Logging settings
+setup_logging(name="player")
+log = logging.getLogger("player")
 
 
 @app.route("/attack_value", methods=["GET"])
@@ -40,27 +50,32 @@ def can_defend(player_id):
 @app.route("/eliminate/<player_id>", methods=["POST"])
 def eliminate(player_id):
     p = REDIS_CONN.get("player_{0}".format(player_id))
-    print("Player {0} eliminated, killing the process".format(p))
-    sys.exit(1)
+    log.info("Player {0} eliminated, killing the process".format(p))
+    os.kill(os.getpid(), signal.SIGTERM)
 
 
-if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        print("Invalid usage.")
-        print("Usage: python player_server.py [player_id] [player_name] [defense_set]")
-        sys.exit(1)
+def main(player_id):
+    config = settings.get_player(player_id)
     player = Player(
-        id=int(sys.argv[1]),
-        name=sys.argv[2],
-        defense_set=int(sys.argv[3]),
-        port=int("".join([PORT_PREFIX, sys.argv[1]]))
+        id=player_id,
+        name=config["name"],
+        defense_set=config["defense"],
+        port=settings.player_port_start + (player_id - 1)
     )
-    print("Starting player {0} process.".format(player.id))
-    res = requests.post(url="{0}/join".format(REFEREE_HOST), json=player.__dict__)
+    log.info("Starting player {0} process.".format(player.id))
+    res = requests.post(url="{0}/join".format(settings.referee_url), json=player.__dict__)
     if res.status_code != 201:
-        print("Not able to join competition. Reason: {0}".format(res.content))
+        log.error("Not able to join competition. Reason: {0}".format(res.content))
         sys.exit(1)
-    print("Joined the competition successfully.")
+    log.info("Joined the competition successfully.")
     # Add player info in redis
     REDIS_CONN.set("player_{0}".format(player.id), player)
     app.run(port=player.port)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Invalid usage.")
+        print("Usage: python player_server.py [player_id]")
+        sys.exit(1)
+    main(int(sys.argv[1]))

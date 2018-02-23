@@ -1,3 +1,4 @@
+import logging
 import multiprocessing
 from time import sleep
 
@@ -8,15 +9,25 @@ from requests.exceptions import ConnectionError as ReqConnError
 
 from referee.exceptions import PlayerAlreadyJoined
 from referee.models import Competition, Player, Game
-from utils import RedisConnection
+from utils import RedisConnection, Settings, setup_logging
 
+# Initialize Flask
 app = Flask(__name__)
+flask_log = logging.getLogger('werkzeug')
+flask_log.setLevel(logging.ERROR)
+
+# Get Redis Connection
 REDIS_CONN = RedisConnection()
-PLAYERS_REQUIRED = 8
+# Get Config
+settings = Settings()
+
+# Setup Process logger
+setup_logging(name="referee")
+log = logging.getLogger("referee")
 
 
 def run_game(game: Game):
-    print("Started game no. {0}".format(game.id))
+    log.info("Started game no. {0}".format(game.id))
     game.create()
     attacker = game.player1
     defender = game.player2
@@ -26,20 +37,19 @@ def run_game(game: Game):
                                     json={"attack_value": attack_res.json()["value"]})
         if defense_res.json()["result"] == "WIN":
             game.add_score(attacker)
-            print("Attacker ({0}) wins the round.".format(attacker.name))
+            log.info("Attacker ({0}) wins the round.".format(attacker.name))
         else:
             game.add_score(defender)
-            print("Defender ({0}) wins the round.".format(defender.name))
+            log.info("Defender ({0}) wins the round.".format(defender.name))
             attacker, defender = defender, attacker
         if game.has_finished():
-            print("Game no. {0} has finished.".format(game.id))
+            log.info("Game no. {0} has finished. Winner: {1}".format(game.id, game.winner.name))
             break
-    print("Winner: {0}".format(game.winner.name))
     # Send kill signal to the loser
     try:
         requests.post("http://localhost:{0}/eliminate/{1}".format(game.loser.port, game.loser.id))
     except ReqConnError:
-        print("Player {0} has left the competition".format(game.loser.name))
+        log.info("Player {0} has left the competition".format(game.loser.name))
     game.end_game()
     # Add the winner back in competition
     competition = Competition.get()
@@ -48,12 +58,13 @@ def run_game(game: Game):
 
 
 def games():
-    print("Started Game Thread")
+    log.info("Started Game Thread")
     while True:
         sleep(10)
         competition = Competition.get()
-        if len(competition.players) < PLAYERS_REQUIRED:
-            print("Waiting for players to join...")
+        if len(competition.players) < settings.total_players:
+            log.info("{0} out of {1} players have joined, waiting for others.".
+                     format(len(competition.players), settings.total_players))
             continue
         break
     # Initialize the 1st game
@@ -66,11 +77,10 @@ def games():
             game_id += 1
             game = Game(game_id)
         game.add_player(competition.pop_player())
-        print(competition.players)
     # Run the last game
     if game.player1 and game.player2:
         run_game(game)
-    print("Competition has ended.")
+    log.info("Competition has ended, the winner is {0}".format(game.winner.name))
 
 
 @app.route("/join", methods=["POST"])
@@ -84,13 +94,14 @@ def join_competition():
     competition = Competition.get()
     try:
         competition.add_player(player)
+        log.info("{0} (ID: {1}) has joined the game.".format(player.name, player.id))
         return app.response_class(status=201)
     except PlayerAlreadyJoined:
         return app.response_class(response="Player {0} has already joined.".format(player.id), status=409)
 
 
 if __name__ == "__main__":
-    http_server_process = multiprocessing.Process(target=app.run)
+    http_server_process = multiprocessing.Process(target=app.run, kwargs={"port": settings.referee_port})
     games_process = multiprocessing.Process(target=games)
     http_server_process.start()
     games_process.start()
