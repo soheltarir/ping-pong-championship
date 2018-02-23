@@ -6,30 +6,6 @@ import sys
 import yaml
 
 
-class RedisConnection:
-    def __init__(self):
-        self.conn = redis.StrictRedis(host="localhost", port=6379, db=0)
-
-    def get(self, key):
-        value = self.conn.get(key)
-        if not value:
-            raise LookupError("No such key exists.")
-        return pickle.loads(value)
-
-    def set(self, key, value):
-        self.conn.set(key, pickle.dumps(value))
-
-    def get_all(self, pattern):
-        keys = self.conn.keys(pattern)
-        unpicked_values = []
-        for _ in sorted(keys):
-            unpicked_values.append(self.get(_))
-        return unpicked_values
-
-    def flushdb(self):
-        self.conn.flushdb()
-
-
 class Settings:
     def __init__(self):
         self.file_name = "config.yml"
@@ -77,6 +53,32 @@ class Settings:
     @property
     def game_cache_key_prefix(self):
         return self.data["games.cache_key_prefix"]
+
+
+class RedisConnection:
+    def __init__(self):
+        settings = Settings()
+        self.conn = redis.StrictRedis(host=settings.data["redis.host"], port=settings.data["redis.port"],
+                                      db=settings.data["redis.db"])
+
+    def get(self, key):
+        value = self.conn.get(key)
+        if not value:
+            raise LookupError("No such key exists.")
+        return pickle.loads(value)
+
+    def set(self, key, value):
+        self.conn.set(key, pickle.dumps(value))
+
+    def get_all(self, pattern):
+        keys = self.conn.keys(pattern)
+        unpicked_values = []
+        for _ in sorted(keys):
+            unpicked_values.append(self.get(_))
+        return unpicked_values
+
+    def flushdb(self):
+        self.conn.flushdb()
 
 
 def setup_logging(verbose=0, name=None):

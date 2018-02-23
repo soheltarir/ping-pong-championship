@@ -1,4 +1,7 @@
+# Total players needed for the competition to start
 total_players: 8
+
+# Player configurations
 players:
   - id: 1
     name: Joey
@@ -25,10 +28,17 @@ players:
     name: Colwin
     defense: 5
 
+# Host and Port to run the Referee server on
 referee.server.host: localhost
 referee.server.port: 5000
 
+# Starting Port sequence on which the player processes will run
 player.server.start_port: 5001
+
+# Redis Connection configurations
+redis.host: localhost
+redis.port: 6379
+redis.db: 0
 
 competition.cache_key: competition
 games.cache_key_prefix: ping_pong_game
