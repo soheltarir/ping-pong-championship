@@ -35,12 +35,21 @@ def get_attack_value():
 
 @app.route("/can_defend/<player_id>", methods=["POST"])
 def can_defend(player_id):
+    """
+    Returns WIN if the attack_value is not in the defense array generated else LOSS
+    :param player_id:
+    :return:
+    """
     if request.get_json().get("attack_value"):
         attack_value = request.get_json()["attack_value"]
     else:
         return app.response_class(response="Missing attack_value in body", status=400)
     defender = REDIS_CONN.get("player_{0}".format(player_id))
-    if attack_value > defender.defense_set:
+    # Generate the defense array
+    defense_array = []
+    for i in range(defender.defense_set):
+        defense_array.append(random.choice(range(1, 11)))
+    if attack_value not in defense_array:
         data = {"result": "WIN"}
     else:
         data = {"result": "LOSS"}
