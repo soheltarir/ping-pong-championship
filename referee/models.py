@@ -27,6 +27,7 @@ class Player:
 class Competition:
     def __init__(self):
         self.players = list()
+        self.status = 0
 
     @property
     def cache_key(self):
@@ -50,6 +51,14 @@ class Competition:
         value.players.remove(player)
         REDIS_CONN.set(self.cache_key, value)
         return player
+
+    def start(self):
+        self.status = 1
+        REDIS_CONN.set(self.cache_key, self)
+
+    def end(self):
+        self.status = 2
+        REDIS_CONN.set(self.cache_key, self)
 
     @classmethod
     def get(cls):

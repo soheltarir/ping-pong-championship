@@ -79,7 +79,7 @@ This will launch player processes based on the configuration `players`
 #### URL
 `POST /game_info/:player_id/`
 #### Request Body
-```json
+```
 {
     "status": 1,        # 1 if game has started, 2 if game has ended.
     "game_id": 1,
@@ -87,3 +87,5 @@ This will launch player processes based on the configuration `players`
     "winner_id": 1      # Sent at the end of the game (status=2) designating who has won the game.
 }
 ```
+## Post Competition Report
+The report is generated after the competition ends to file **competition_report.csv** in the root directory.

@@ -82,7 +82,7 @@ def main(player_id):
     if res.status_code != 201:
         log.error("Not able to join competition. Reason: {0}".format(res.content))
         sys.exit(1)
-    log.info("Joined the competition successfully.")
+    log.info("{0} has joined the competition successfully.".format(player.name))
     # Add player info in redis
     REDIS_CONN.set("player_{0}".format(player.id), player)
     app.run(port=player.port)

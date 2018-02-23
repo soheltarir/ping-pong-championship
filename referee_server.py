@@ -1,10 +1,13 @@
 import logging
 import multiprocessing
+import signal
 from time import sleep
 
 import atexit
+
+import os
 import requests
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from requests.exceptions import ConnectionError as ReqConnError
 
 from referee.exceptions import PlayerAlreadyJoined
@@ -87,6 +90,7 @@ def games():
             continue
         break
     # Initialize the 1st game
+    competition.start()
     game_id = 1
     game = Game(game_id)
     while len(competition.players):
@@ -100,6 +104,7 @@ def games():
     if game.player1 and game.player2:
         run_game(game)
     log.info("Competition has ended, the winner is {0}".format(game.winner.name))
+    competition.end()
     report = ExportReport()
     report.generate()
     log.info("Generated competition report to {0}".format(report.file_name))
@@ -120,6 +125,12 @@ def join_competition():
         return app.response_class(status=201)
     except PlayerAlreadyJoined:
         return app.response_class(response="Player {0} has already joined.".format(player.id), status=409)
+
+
+@app.route("/competition/status", methods=["GET"])
+def get_competition_status():
+    competition = Competition.get()
+    return jsonify({"status": competition.status})
 
 
 if __name__ == "__main__":
