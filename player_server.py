@@ -47,8 +47,11 @@ def can_defend(player_id):
     defender = REDIS_CONN.get("player_{0}".format(player_id))
     # Generate the defense array
     defense_array = []
+    choice_set = list(range(1, 11))
     for i in range(defender.defense_set):
-        defense_array.append(random.choice(range(1, 11)))
+        _ = random.choice(choice_set)
+        defense_array.append(_)
+        choice_set.remove(_)
     if attack_value not in defense_array:
         data = {"result": "WIN"}
     else:
